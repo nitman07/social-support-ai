@@ -107,7 +107,7 @@ class PostgresApplicationRepository(IApplicationRepository):
             id=application.id,
             applicant_id=application.applicant_id,
             status=application.status.value,
-            metadata=application.metadata,
+            app_metadata=application.metadata,
         )
         self.session.add(model)
         await self.session.flush()
@@ -138,7 +138,7 @@ class PostgresApplicationRepository(IApplicationRepository):
         model.status = application.status.value
         model.workflow_id = application.workflow_id
         model.checkpoint_id = application.checkpoint_id
-        model.metadata = application.metadata
+        model.app_metadata = application.metadata
         model.submitted_at = application.submitted_at
         model.completed_at = application.completed_at
         await self.session.flush()
@@ -186,7 +186,7 @@ class PostgresApplicationRepository(IApplicationRepository):
             status=ApplicationStatus(model.status),
             workflow_id=model.workflow_id,
             checkpoint_id=model.checkpoint_id,
-            metadata=model.metadata,
+            metadata=model.app_metadata,
             submitted_at=model.submitted_at,
             completed_at=model.completed_at,
             created_at=model.created_at,

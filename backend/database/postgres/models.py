@@ -44,7 +44,7 @@ class ApplicationModel(Base):
     )
     workflow_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     checkpoint_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=dict)
+    app_metadata: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True, default=dict)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
