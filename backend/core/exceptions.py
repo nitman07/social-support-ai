@@ -22,6 +22,14 @@ class ApplicationNotFoundError(ApplicationError):
         )
 
 
+class ApplicantNotFoundError(ApplicationError):
+    def __init__(self, applicant_id: str) -> None:
+        super().__init__(
+            message=f"Applicant {applicant_id} not found",
+            context={"applicant_id": applicant_id},
+        )
+
+
 class InvalidStateTransitionError(ApplicationError):
     def __init__(self, application_id: str, current: str, target: str) -> None:
         super().__init__(
