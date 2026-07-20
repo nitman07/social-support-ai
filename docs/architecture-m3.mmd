@@ -1,0 +1,61 @@
+graph TB
+    subgraph "PostgreSQL"
+        PG[("Seed Data<br/>100 applicants")]
+    end
+
+    subgraph "Feature Engineering<br/>backend/ml/features.py"
+        EXTRACT["extract_all_feature_vectors"]
+        F1["monthly_income"]
+        F2["family_size"]
+        F3["years_employed"]
+        F4["total_assets"]
+        F5["total_liabilities"]
+        F6["liability_to_income_ratio"]
+        F7["has_inconsistencies"]
+        F8["num_documents"]
+    end
+
+    subgraph "Training Pipeline<br/>backend/ml/pipeline.py"
+        SPLIT["80/20 Stratified Split"]
+        TRAIN["RandomForestClassifier<br/>200 estimators, max_depth=10"]
+        EVAL["Evaluation<br/>Accuracy / Precision / Recall / F1 / AUC"]
+        SAVE["Pickle Model<br/>data/models/eligibility_rf.pkl"]
+    end
+
+    subgraph "Rules Engine<br/>backend/ml/rules.py"
+        R1["Income > AED 50,000? → BLOCK"]
+        R2["Assets > AED 500,000? → BLOCK"]
+        R3["Debt Ratio > 3x? → BLOCK"]
+        R4["Income < AED 1,000? → BLOCK"]
+        R5["Documents < 1? → FLAG"]
+    end
+
+    subgraph "Prediction Service<br/>backend/ml/model.py"
+        LOAD["ml_service.load_model()<br/>FastAPI lifespan"]
+        PREDICT["predict(features)"]
+        SHAP["shap.TreeExplainer<br/>Feature Importance"]
+        BATCH["predict_batch(features_list)"]
+    end
+
+    subgraph "MLService Interface<br/>backend/domain/ports/ml_service.py"
+        IFACE["IMLService"]
+        MPRED["MLPrediction<br/>score + confidence +<br/>feature_importance"]
+    end
+
+    PG --> EXTRACT
+    EXTRACT --> F1 & F2 & F3 & F4 & F5 & F6 & F7 & F8
+    F1 & F2 & F3 & F4 & F5 & F6 & F7 & F8 --> SPLIT
+    SPLIT --> TRAIN
+    TRAIN --> EVAL
+    EVAL --> SAVE
+
+    SAVE -.-> LOAD
+    LOAD --> PREDICT
+    LOAD --> BATCH
+
+    PREDICT --> R1 & R2 & R3 & R4 & R5
+    R1 & R2 & R3 & R4 & R5 --> SHAP
+    SHAP --> MPRED
+
+    PREDICT --> IFACE
+    BATCH --> IFACE
