@@ -8,41 +8,31 @@ from uuid import UUID, uuid4
 
 @dataclass
 class DomainEvent:
-    """Base class for all domain events.
-
-    Every event carries a unique ID, timestamp, and optional correlation
-    ID for tracing across service boundaries.
-    """
     event_id: UUID = field(default_factory=uuid4)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    correlation_id: str | None = None
 
 
 @dataclass
-class ApplicationSubmitted(DomainEvent):
-    """Published when an applicant submits their application."""
+class ApplicationSubmitted:
     application_id: UUID
     applicant_id: UUID
     document_count: int
 
 
 @dataclass
-class DocumentsUploaded(DomainEvent):
-    """Published when documents are uploaded to an application."""
+class DocumentsUploaded:
     application_id: UUID
     document_ids: list[UUID]
 
 
 @dataclass
-class ProcessingStarted(DomainEvent):
-    """Published when the AI workflow begins processing."""
+class ProcessingStarted:
     application_id: UUID
     workflow_id: str
 
 
 @dataclass
-class OCRComplete(DomainEvent):
-    """Published when OCR processing finishes for a document."""
+class OCRComplete:
     application_id: UUID
     document_id: UUID
     document_type: str
@@ -51,16 +41,14 @@ class OCRComplete(DomainEvent):
 
 
 @dataclass
-class ValidationComplete(DomainEvent):
-    """Published when cross-validation of extracted data finishes."""
+class ValidationComplete:
     application_id: UUID
     inconsistency_count: int
     requires_human_review: bool
 
 
 @dataclass
-class HumanReviewRequired(DomainEvent):
-    """Published when the workflow reaches a human-in-the-loop checkpoint."""
+class HumanReviewRequired:
     application_id: UUID
     checkpoint_id: str
     reason: str
@@ -68,8 +56,7 @@ class HumanReviewRequired(DomainEvent):
 
 
 @dataclass
-class AssessmentComplete(DomainEvent):
-    """Published when eligibility assessment finishes."""
+class AssessmentComplete:
     application_id: UUID
     ml_score: float
     ml_confidence: float
@@ -77,18 +64,16 @@ class AssessmentComplete(DomainEvent):
 
 
 @dataclass
-class DecisionMade(DomainEvent):
-    """Published when a final decision is rendered."""
+class DecisionMade:
     application_id: UUID
-    decision: str  # approved | soft_decline | referred
-    decision_source: str  # system | human_reviewer
+    decision: str
+    decision_source: str
     rationale: str | None = None
     recommendation_count: int = 0
 
 
 @dataclass
-class WorkflowFailed(DomainEvent):
-    """Published when the workflow encounters an unrecoverable error."""
+class WorkflowFailed:
     application_id: UUID
     node: str
     error: str
@@ -96,8 +81,7 @@ class WorkflowFailed(DomainEvent):
 
 
 @dataclass
-class HumanActionTaken(DomainEvent):
-    """Published when a human reviewer takes action on a checkpoint."""
+class HumanActionTaken:
     application_id: UUID
     action: str
     user_id: str

@@ -1,0 +1,79 @@
+graph TB
+    subgraph "Docker Infrastructure"
+        API["social-support-api\nFastAPI @ :8001"]
+        UI["social-support-ui\nStreamlit @ :8501"]
+    end
+
+    subgraph "Databases (M2)"
+        PG[("PostgreSQL :5433\nACID - Structured Data")]
+        MG[("MongoDB :27017\nRaw Docs / OCR JSON")]
+        QD[("Qdrant :6335\nVector Embeddings")]
+        N4[("Neo4j :7687\nEntity Graph")]
+    end
+
+    subgraph "Support"
+        OL["Ollama :11434\nmistral:7b + nomic-embed-text"]
+        RD["Redis :6380\nCache / Celery"]
+    end
+
+    subgraph "Seed Runner"
+        SEED["python -m backend.seed.seed_runner"]
+        SYNTH["Synthetic Data Generator\n100 applicants"]
+    end
+
+    SEED --> SYNTH
+    SYNTH --> PG
+    SYNTH --> MG
+    SYNTH --> QD
+    SYNTH --> N4
+
+    API --> PG
+    API --> MG
+    API --> QD
+    API --> N4
+    API --> OL
+    API --> RD
+
+    UI --> API
+
+    subgraph "PostgreSQL Tables"
+        A["applicants"]
+        APPS["applications"]
+        D["application_documents"]
+        AS["assessments"]
+        R["recommendations"]
+        I["extracted_income"]
+        E["extracted_employment"]
+        F["family_members"]
+        AST["extracted_assets"]
+        L["extracted_liabilities"]
+        IC["inconsistencies"]
+        AL["audit_logs"]
+    end
+
+    PG --> A & APPS & D & AS & R & I & E & F & AST & L & IC & AL
+
+    subgraph "MongoDB Collections"
+        OCR["ocr_results"]
+        GRID["fs.files + fs.chunks\n(GridFS)"]
+    end
+
+    MG --> OCR & GRID
+
+    subgraph "Qdrant Collections"
+        POL["government_policies"]
+        PROG["training_programs"]
+        FAQ["faq_embeddings"]
+    end
+
+    QD --> POL & PROG & FAQ
+
+    subgraph "Neo4j Nodes"
+        APP_N["Applicant"]
+        EMP["Employer"]
+        FM["FamilyMember"]
+        AST_N["Asset"]
+        LIAB_N["Liability"]
+    end
+
+    N4 --> APP_N & EMP & FM & AST_N & LIAB_N

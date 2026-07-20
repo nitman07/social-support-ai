@@ -1,0 +1,68 @@
+features:
+  - name: monthly_income
+    type: float
+    source: extracted_income
+    description: Total monthly income (salary + business + rental)
+    nullable: false
+    normalizer: log
+
+  - name: family_size
+    type: int
+    source: family_members
+    description: Number of family members (dependents + spouse)
+    nullable: false
+    normalizer: none
+
+  - name: years_employed
+    type: float
+    source: extracted_employment
+    description: Years in current employment
+    nullable: true
+    normalizer: none
+    fill_value: 0.0
+
+  - name: total_assets
+    type: float
+    source: extracted_assets
+    description: Total value of all declared assets
+    nullable: false
+    normalizer: log
+
+  - name: total_liabilities
+    type: float
+    source: extracted_liabilities
+    description: Total outstanding liabilities
+    nullable: false
+    normalizer: log
+
+  - name: liability_to_income_ratio
+    type: float
+    source: computed
+    description: Total liabilities / annual income
+    nullable: false
+    normalizer: none
+
+  - name: has_inconsistencies
+    type: bool
+    source: inconsistencies
+    description: Whether any cross-document inconsistencies were found
+    nullable: false
+    normalizer: none
+
+  - name: num_documents
+    type: int
+    source: application_documents
+    description: Number of supporting documents uploaded
+    nullable: false
+    normalizer: none
+
+model:
+  type: random_forest
+  params:
+    n_estimators: 200
+    max_depth: 10
+    min_samples_split: 5
+    min_samples_leaf: 2
+    random_state: 42
+    class_weight: balanced
+  target_column: eligibility_label

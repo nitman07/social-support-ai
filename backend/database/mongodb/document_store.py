@@ -21,11 +21,11 @@ class MongoDocumentStore(IDocumentStore):
         self.bucket = AsyncIOMotorGridFSBucket(self.db)
 
     async def close(self) -> None:
-        if self.client:
+        if self.client is not None:
             self.client.close()
 
     async def upload(self, document: Document, content: bytes) -> str:
-        if not self.bucket:
+        if self.bucket is None:
             raise RuntimeError("MongoDB not connected")
         grid_id = await self.bucket.upload_from_stream(
             filename=document.file_name,
@@ -40,7 +40,7 @@ class MongoDocumentStore(IDocumentStore):
         return str(grid_id)
 
     async def download(self, document: Document) -> bytes:
-        if not self.bucket:
+        if self.bucket is None:
             raise RuntimeError("MongoDB not connected")
         chunks = []
         async for chunk in self.bucket.open_download_stream_by_name(document.file_name):
@@ -48,7 +48,7 @@ class MongoDocumentStore(IDocumentStore):
         return b"".join(chunks)
 
     async def delete(self, document: Document) -> None:
-        if not self.bucket:
+        if self.bucket is None:
             raise RuntimeError("MongoDB not connected")
         cursor = self.db.fs.files.find({"metadata.document_id": str(document.id)})
         async for file_doc in cursor:
@@ -61,7 +61,7 @@ class MongoDocumentStore(IDocumentStore):
         text: str,
         tables: list[dict] | None = None,
     ) -> None:
-        if not self.db:
+        if self.db is None:
             raise RuntimeError("MongoDB not connected")
         await self.db.ocr_results.update_one(
             {"document_id": str(document_id)},
@@ -78,7 +78,7 @@ class MongoDocumentStore(IDocumentStore):
         )
 
     async def get_ocr_result(self, application_id: UUID, document_id: UUID) -> dict | None:
-        if not self.db:
+        if self.db is None:
             raise RuntimeError("MongoDB not connected")
         result = await self.db.ocr_results.find_one(
             {"document_id": str(document_id), "application_id": str(application_id)}

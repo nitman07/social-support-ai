@@ -4,12 +4,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.core.config import settings
-from backend.core.logging import setup_logging
+from backend.core.logging import get_logger, setup_logging
+from backend.ml.model import ml_service
+
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging(log_level=settings.app_log_level)
+    await ml_service.load_model()
+    logger.info("Application started")
     yield
 
 

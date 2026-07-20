@@ -129,7 +129,7 @@ async def seed_postgres() -> None:
                     id=uuid4(),
                     application_id=app.id,
                     name=fm["name"],
-                    relationship=fm["relationship"],
+                    relation=fm["relationship"],
                     is_dependent=fm["is_dependent"],
                 ))
 

@@ -54,7 +54,7 @@ class ApplicationModel(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
     )
 
-    applicant: Mapped["ApplicantModel"] = relationship(back_populates="applications")
+    applicant: Mapped[ApplicantModel] = relationship(back_populates="applications")
     documents: Mapped[list["DocumentModel"]] = relationship(
         back_populates="application", lazy="selectin", cascade="all, delete-orphan"
     )
@@ -102,7 +102,7 @@ class DocumentModel(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    application: Mapped["ApplicationModel"] = relationship(back_populates="documents")
+    application: Mapped[ApplicationModel] = relationship(back_populates="documents")
 
 
 class AssessmentModel(Base):
@@ -124,7 +124,7 @@ class AssessmentModel(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    application: Mapped["ApplicationModel"] = relationship(back_populates="assessments")
+    application: Mapped[ApplicationModel] = relationship(back_populates="assessments")
     recommendations: Mapped[list["RecommendationModel"]] = relationship(
         back_populates="assessment", lazy="selectin", cascade="all, delete-orphan"
     )
@@ -146,7 +146,7 @@ class RecommendationModel(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    assessment: Mapped["AssessmentModel"] = relationship(back_populates="recommendations")
+    assessment: Mapped[AssessmentModel] = relationship(back_populates="recommendations")
 
 
 class ExtractedIncomeModel(Base):
@@ -168,7 +168,7 @@ class ExtractedIncomeModel(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    application: Mapped["ApplicationModel"] = relationship(back_populates="income_records")
+    application: Mapped[ApplicationModel] = relationship(back_populates="income_records")
 
 
 class ExtractedEmploymentModel(Base):
@@ -191,7 +191,7 @@ class ExtractedEmploymentModel(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    application: Mapped["ApplicationModel"] = relationship(back_populates="employment_records")
+    application: Mapped[ApplicationModel] = relationship(back_populates="employment_records")
 
 
 class FamilyMemberModel(Base):
@@ -202,7 +202,7 @@ class FamilyMemberModel(Base):
         UUID(as_uuid=True), ForeignKey("applications.id"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    relationship: Mapped[str] = mapped_column(String(50), nullable=False)
+    relation: Mapped[str] = mapped_column("relationship", String(50), nullable=False)
     date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_dependent: Mapped[bool] = mapped_column(Boolean, default=True)
     document_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -213,7 +213,7 @@ class FamilyMemberModel(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    application: Mapped["ApplicationModel"] = relationship(back_populates="family_members")
+    application: Mapped[ApplicationModel] = relationship(back_populates="family_members")
 
 
 class ExtractedAssetModel(Base):
@@ -234,7 +234,7 @@ class ExtractedAssetModel(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    application: Mapped["ApplicationModel"] = relationship(back_populates="assets")
+    application: Mapped[ApplicationModel] = relationship(back_populates="assets")
 
 
 class ExtractedLiabilityModel(Base):
@@ -256,7 +256,7 @@ class ExtractedLiabilityModel(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    application: Mapped["ApplicationModel"] = relationship(back_populates="liabilities")
+    application: Mapped[ApplicationModel] = relationship(back_populates="liabilities")
 
 
 class InconsistencyModel(Base):
@@ -281,7 +281,7 @@ class InconsistencyModel(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    application: Mapped["ApplicationModel"] = relationship(back_populates="inconsistencies")
+    application: Mapped[ApplicationModel] = relationship(back_populates="inconsistencies")
 
 
 class AuditLogModel(Base):
@@ -299,7 +299,7 @@ class AuditLogModel(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
     )
 
-    application: Mapped["ApplicationModel"] = relationship(back_populates="audit_logs")
+    application: Mapped[ApplicationModel] = relationship(back_populates="audit_logs")
 
 
 class UserModel(Base):

@@ -47,3 +47,6 @@ notebooks/.ipynb_checkpoints/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Personal notes
+personal_interview.md

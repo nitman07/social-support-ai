@@ -1,3 +1,5 @@
+import uuid
+
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from qdrant_client.http.models import Distance, VectorParams
@@ -30,10 +32,16 @@ class QdrantVectorStore(IVectorStore):
             vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
         )
 
+    def _to_point_id(self, id: str) -> int | str:
+        try:
+            return uuid.UUID(id)
+        except ValueError:
+            return str(uuid.uuid5(uuid.NAMESPACE_DNS, id))
+
     async def upsert(self, collection_name: str, records: list[VectorRecord]) -> None:
         points = [
             models.PointStruct(
-                id=record.id,
+                id=self._to_point_id(record.id),
                 vector=record.vector,
                 payload=record.payload,
             )
@@ -84,7 +92,7 @@ class QdrantVectorStore(IVectorStore):
         self.client.delete(
             collection_name=collection_name,
             points_selector=models.PointIdsList(
-                points=record_ids,
+                points=[self._to_point_id(rid) for rid in record_ids],
             ),
         )
 
@@ -95,7 +103,7 @@ class QdrantVectorStore(IVectorStore):
         info = self.client.get_collection(collection_name)
         return {
             "name": collection_name,
-            "vectors_count": info.vectors_count,
+            "points_count": info.points_count,
             "segments_count": info.segments_count,
             "status": info.status,
         }
