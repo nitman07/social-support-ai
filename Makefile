@@ -20,14 +20,16 @@ dev:
 dev-build:
 	docker compose up --build -d
 
+PYTHON := python3
+
 test:
-	python -m pytest tests/ -v --cov=backend --cov-report=term-missing
+	$(PYTHON) -m pytest tests/ -v --cov=backend --cov-report=term-missing
 
 test-unit:
-	python -m pytest tests/unit/ -v
+	$(PYTHON) -m pytest tests/unit/ -v
 
 test-int:
-	python -m pytest tests/integration/ -v
+	$(PYTHON) -m pytest tests/integration/ -v
 
 lint:
 	ruff check backend/ tests/ frontend/
@@ -37,7 +39,7 @@ typecheck:
 	mypy backend/ tests/
 
 seed:
-	python -m backend.seed.seed_runner
+	$(PYTHON) -m backend.seed.seed_runner
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
