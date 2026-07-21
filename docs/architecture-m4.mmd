@@ -1,0 +1,60 @@
+graph TB
+    START((START)) --> intake["intake_node<br/>Load application + documents<br/>from PostgreSQL"]
+
+    intake --> ocr["ocr_node<br/>Process each document<br/>Save OCR results to MongoDB"]
+
+    ocr --> validation["validation_node<br/>Check inconsistencies<br/>from PostgreSQL"]
+
+    validation --> cond_val{"route_after_validation<br/>=3 high-severity inconsistencies?"}
+
+    cond_val -- "No →" --> knowledge["knowledge_node<br/>Embed query → Qdrant search<br/>Retrieve policy context"]
+
+    cond_val -- "Yes →" --> human_review["human_review_node<br/>Flag for HITL review<br/>status = awaiting_review"]
+
+    human_review --> knowledge
+
+    knowledge --> eligibility["eligibility_node<br/>Extract 8 features<br/>Evaluate business rules<br/>Random Forest prediction<br/>SHAP feature importance"]
+
+    eligibility --> decision["decision_node<br/>LLM generates rationale<br/>Based on ML score + policies"]
+
+    decision --> cond_dec{"route_after_decision<br/>Confidence < 0.5<br/>or declined?"}
+
+    cond_dec -- "No →" --> recommendation["recommendation_node<br/>Generate 3 recommendations<br/>Update DB status"]
+
+    cond_dec -- "Yes →" --> human_signoff["human_signoff_node<br/>Escalate for human<br/>final decision"]
+
+    human_signoff --> recommendation
+
+    recommendation --> END((END))
+
+    subgraph "LangGraph Checkpointing"
+        CP["MemorySaver<br/>Checkpoints after each node<br/>thread_id = workflow_id"]
+    end
+
+    subgraph "Services Called"
+        PG["PostgreSQL<br/>Application + Assessment data"]
+        MG["MongoDB<br/>OCR results (GridFS)"]
+        QD["Qdrant<br/>Policy vectors"]
+        LLM["Ollama<br/>qwen2.5:0.5b<br/>Generate rationale"]
+        ML["ML Model<br/>Random Forest<br/>eligibility_rf.pkl"]
+    end
+
+    intake -.-> PG
+    ocr -.-> MG
+    validation -.-> PG
+    knowledge -.-> QD
+    knowledge -.-> LLM
+    eligibility -.-> ML
+    eligibility -.-> PG
+    decision -.-> LLM
+    recommendation -.-> PG
+
+    subgraph "State Fields"
+        S1["application_id / applicant_id"]
+        S2["documents / ocr_results"]
+        S3["inconsistencies"]
+        S4["retrieved_policies"]
+        S5["ml_features / ml_score"]
+        S6["decision / rationale"]
+        S7["recommendations"]
+    end
