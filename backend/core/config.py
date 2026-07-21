@@ -112,7 +112,7 @@ class Settings(BaseSettings):
 
     # Ollama
     ollama_host: str = "http://localhost:11434"
-    ollama_llm_model: str = "mistral:7b"
+    ollama_llm_model: str = "qwen2.5:0.5b"
     ollama_embedding_model: str = "nomic-embed-text"
     ollama_vision_model: str = "qwen2.5-vl:7b"
     ollama_timeout: int = 120

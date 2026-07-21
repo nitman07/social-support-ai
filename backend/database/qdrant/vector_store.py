@@ -71,9 +71,9 @@ class QdrantVectorStore(IVectorStore):
             ]
             search_filter = models.Filter(must=conditions)
 
-        results = self.client.search(
+        response = self.client.query_points(
             collection_name=collection_name,
-            query_vector=query_vector,
+            query=query_vector,
             limit=limit,
             score_threshold=score_threshold,
             query_filter=search_filter,
@@ -81,11 +81,11 @@ class QdrantVectorStore(IVectorStore):
 
         return [
             VectorSearchResult(
-                id=str(r.id),
-                score=r.score,
-                payload=r.payload or {},
+                id=str(p.id),
+                score=p.score,
+                payload=p.payload or {},
             )
-            for r in results
+            for p in response.points
         ]
 
     async def delete(self, collection_name: str, record_ids: list[str]) -> None:
