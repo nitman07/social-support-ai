@@ -20,6 +20,7 @@ from backend.database.postgres import (
     RecommendationModel,
     async_session_factory,
 )
+from backend.services.audit_service import log_audit
 from backend.workflows.graph import application_graph
 
 logger = get_logger(__name__)
@@ -68,6 +69,12 @@ async def resolve_flag(
         session.add(flag)
         await session.commit()
 
+    await log_audit(
+        application_id=application_id,
+        action=f"flag_{request.action}",
+        actor=user.get("user_id", "system"),
+        details={"flag_id": str(flag_id), "field": flag.field},
+    )
     return {"status": "ok", "message": f"Flag {request.action}"}
 
 
@@ -100,6 +107,12 @@ async def signoff_application(
 
         await session.commit()
 
+    await log_audit(
+        application_id=application_id,
+        action=f"signoff_{request.decision}",
+        actor=user.get("user_id", "human"),
+        details={"rationale": request.rationale},
+    )
     return {"status": "ok", "message": f"Application {request.decision}"}
 
 
@@ -120,6 +133,11 @@ async def resume_workflow(application_id: uuid.UUID, user: dict = Depends(get_cu
     import asyncio
     asyncio.create_task(_resume_workflow(str(application_id), workflow_id or ""))
 
+    await log_audit(
+        application_id=application_id,
+        action="workflow_resumed",
+        actor=user.get("user_id", "system"),
+    )
     return {"status": "ok", "message": "Workflow resumed"}
 
 

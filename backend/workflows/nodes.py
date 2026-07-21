@@ -2,6 +2,7 @@ import json
 from uuid import uuid4
 
 from backend.core.logging import get_logger
+from backend.core.observability import trace_node
 from backend.database.mongodb.document_store import mongo_document_store
 from backend.database.neo4j.graph_store import neo4j_graph_store
 from backend.database.postgres import (
@@ -29,6 +30,7 @@ from sqlalchemy import select, text
 logger = get_logger(__name__)
 
 
+@trace_node("intake")
 async def intake_node(state: ApplicationState) -> dict:
     application_id = state["application_id"]
     logger.info(f"Intake: processing application {application_id}")
@@ -65,6 +67,7 @@ async def intake_node(state: ApplicationState) -> dict:
     }
 
 
+@trace_node("ocr")
 async def ocr_node(state: ApplicationState) -> dict:
     logger.info(f"OCR: processing documents for application {state['application_id']}")
     ocr_results = {}
@@ -97,6 +100,7 @@ async def ocr_node(state: ApplicationState) -> dict:
     }
 
 
+@trace_node("validation")
 async def validation_node(state: ApplicationState) -> dict:
     logger.info(f"Validation: checking application {state['application_id']}")
     async with async_session_factory() as session:
@@ -123,6 +127,7 @@ async def validation_node(state: ApplicationState) -> dict:
     }
 
 
+@trace_node("human_review")
 async def human_review_node(state: ApplicationState) -> dict:
     logger.info(f"Human review: application {state['application_id']} flagged")
     return {
@@ -130,6 +135,7 @@ async def human_review_node(state: ApplicationState) -> dict:
     }
 
 
+@trace_node("knowledge")
 async def knowledge_node(state: ApplicationState) -> dict:
     logger.info(f"Knowledge: retrieving policies for application {state['application_id']}")
     policies = await retrieve_policies(
@@ -140,6 +146,7 @@ async def knowledge_node(state: ApplicationState) -> dict:
     }
 
 
+@trace_node("eligibility")
 async def eligibility_node(state: ApplicationState) -> dict:
     logger.info(f"Eligibility: computing score for application {state['application_id']}")
     fv = await extract_features_for_application(state["application_id"])
@@ -193,6 +200,7 @@ async def eligibility_node(state: ApplicationState) -> dict:
     }
 
 
+@trace_node("decision")
 async def decision_node(state: ApplicationState) -> dict:
     logger.info(f"Decision: generating rationale for application {state['application_id']}")
 
@@ -247,6 +255,7 @@ async def decision_node(state: ApplicationState) -> dict:
     }
 
 
+@trace_node("recommendation")
 async def recommendation_node(state: ApplicationState) -> dict:
     logger.info(f"Recommendation: generating for application {state['application_id']}")
 

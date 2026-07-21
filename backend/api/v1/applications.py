@@ -27,6 +27,7 @@ from backend.database.postgres import (
     async_session_factory,
 )
 from backend.ml.model import ml_service
+from backend.services.audit_service import log_audit
 from backend.workflows.graph import application_graph
 from backend.workflows.state import ApplicationState
 
@@ -163,6 +164,12 @@ async def process_application(application_id: uuid.UUID, user: dict = Depends(ge
         session.add(app)
         await session.commit()
         workflow_id = app.workflow_id
+
+    await log_audit(
+        application_id=application_id,
+        action="workflow_started",
+        actor=user.get("user_id", "system"),
+    )
 
     import asyncio
     asyncio.create_task(_run_workflow(str(application_id), workflow_id))

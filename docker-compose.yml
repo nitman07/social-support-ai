@@ -18,6 +18,8 @@ services:
     volumes:
       - ./backend:/app/backend
       - ./data:/app/data
+      - ./tests:/app/tests
+      - ./pyproject.toml:/app/pyproject.toml
     depends_on:
       postgres:
         condition: service_healthy

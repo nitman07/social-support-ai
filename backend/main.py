@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.api.v1 import applications, auth, decisions
 from backend.core.config import settings
 from backend.core.logging import get_logger, setup_logging
+from backend.core.metrics import get_metrics
 from backend.ml.model import ml_service
 
 logger = get_logger(__name__)
@@ -43,3 +44,8 @@ app.include_router(decisions.router, prefix="/api/v1")
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": settings.app_name, "version": "0.1.0"}
+
+
+@app.get("/metrics")
+async def metrics():
+    return get_metrics()

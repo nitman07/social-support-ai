@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
         pypdf pytesseract pdf2image pillow python-docx openpyxl \
         langfuse streamlit \
         pydantic pydantic-settings python-dotenv faker httpx tenacity loguru injector \
-        celery redis pyjwt
+        celery redis pyjwt pytest pytest-asyncio pytest-cov
 
 COPY . .
 
