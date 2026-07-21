@@ -1,0 +1,102 @@
+sequenceDiagram
+    participant Client as Client / Streamlit / curl
+    participant FastAPI as FastAPI Application
+    participant AuthMW as JWT Bearer Middleware
+    participant AuthRouter as /api/v1/auth Router
+    participant AppRouter as /api/v1/applications Router
+    participant DecRouter as /api/v1/decisions Router
+    participant AuthSvc as Auth Service
+    participant PG as PostgreSQL
+
+    rect rgb(200, 220, 240)
+        Note over Client,FastAPI: Authentication Flow
+        Client->>FastAPI: POST /api/v1/auth/login
+        FastAPI->>AuthRouter: route to login()
+        AuthRouter->>PG: SELECT * FROM users WHERE username = ?
+        PG-->>AuthRouter: user record (hashed_password, role)
+        AuthRouter->>AuthSvc: verify_password(password, hash)
+        AuthSvc-->>AuthRouter: True / False
+        AuthRouter->>AuthSvc: create_access_token(user_id, role)
+        AuthSvc-->>AuthRouter: JWT (HS256, 15min expiry)
+        AuthRouter-->>Client: 200 { access_token, expires_in }
+    end
+
+    rect rgb(220, 240, 200)
+        Note over Client,FastAPI: Authenticated Requests
+        Client->>FastAPI: GET /api/v1/auth/me (Authorization: Bearer JWT)
+        FastAPI->>AuthMW: decode_access_token(token)
+        AuthMW-->>FastAPI: { user_id, role }
+        FastAPI->>AuthRouter: get_me(user_id)
+        AuthRouter->>PG: SELECT * FROM users WHERE id = ?
+        PG-->>AuthRouter: user record
+        AuthRouter-->>Client: 200 { id, username, role, full_name }
+    end
+
+    rect rgb(240, 220, 200)
+        Note over Client,FastAPI: Application CRUD
+        Client->>FastAPI: GET /api/v1/applications?status=&page=&page_size=
+        FastAPI->>AuthMW: validate JWT
+        FastAPI->>AppRouter: list_applications()
+        AppRouter->>PG: SELECT + COUNT with JOIN on applicants
+        PG-->>AppRouter: paginated results
+        AppRouter-->>Client: 200 { items[], total, page, page_size }
+
+        Client->>FastAPI: GET /api/v1/applications/{id}
+        FastAPI->>AuthMW: validate JWT
+        FastAPI->>AppRouter: get_application(id)
+        AppRouter->>PG: SELECT application + applicant + documents + assessment + inconsistencies + recommendations
+        PG-->>AppRouter: full joined result
+        AppRouter-->>Client: 200 ApplicationDetail
+    end
+
+    rect rgb(240, 235, 200)
+        Note over Client,FastAPI: Workflow Trigger (Async)
+        Client->>FastAPI: POST /api/v1/applications/{id}/process
+        FastAPI->>AuthMW: validate JWT
+        FastAPI->>AppRouter: process_application(id)
+        AppRouter->>PG: UPDATE status = 'processing', set workflow_id
+        AppRouter-->>Client: 202 { workflow_id, message }
+        rect rgb(255, 200, 200)
+            Note right of Client: Background Task (asyncio.create_task)
+            AppRouter->>+ML Model: load_model()
+            AppRouter->>+LangGraph: ainvoke(ApplicationState)
+            LangGraph-->>-AppRouter: workflow complete
+            AppRouter->>PG: UPDATE status = result
+            Note right of AppRouter: Client polls status endpoint
+        end
+    end
+
+    rect rgb(200, 240, 240)
+        Note over Client,FastAPI: Status Polling
+        Client->>FastAPI: GET /api/v1/applications/{id}/status
+        FastAPI->>AuthMW: validate JWT
+        FastAPI->>AppRouter: get_workflow_status(id)
+        AppRouter->>PG: SELECT application + assessment
+        PG-->>AppRouter: status, decision, ml_score
+        AppRouter-->>Client: 200 { status, decision, requires_human_review }
+    end
+
+    rect rgb(240, 220, 240)
+        Note over Client,FastAPI: Human-in-the-Loop
+        Client->>FastAPI: GET /api/v1/applications/{id}/flags
+        FastAPI->>DecRouter: get_flags(id)
+        DecRouter->>PG: SELECT inconsistencies WHERE application_id = ?
+        PG-->>DecRouter: flag records
+        DecRouter-->>Client: 200 flags[]
+
+        Client->>FastAPI: POST /api/v1/applications/{id}/resolve-flag/{flag_id}
+        FastAPI->>DecRouter: resolve_flag(id, flag_id, action)
+        DecRouter->>PG: UPDATE inconsistency SET status = action
+        DecRouter-->>Client: 200 { message }
+
+        Client->>FastAPI: POST /api/v1/applications/{id}/signoff
+        FastAPI->>DecRouter: signoff(id, decision, rationale)
+        DecRouter->>PG: UPDATE application + assessment (decision, decided_by)
+        DecRouter-->>Client: 200 { message }
+
+        Client->>FastAPI: POST /api/v1/applications/{id}/resume
+        FastAPI->>DecRouter: resume_workflow(id)
+        DecRouter-->>Client: 200 { message }
+        DecRouter->>+LangGraph: aupdate_state() to resume
+        LangGraph-->>-DecRouter: workflow continued
+    end

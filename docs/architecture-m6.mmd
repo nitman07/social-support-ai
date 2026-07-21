@@ -1,0 +1,73 @@
+graph TB
+    subgraph "Streamlit Frontend (localhost:8501)"
+        direction TB
+        MAIN["streamlit_app.py<br/>Entry Point<br/>- Login form (unauthenticated)<br/>- Sidebar nav (authenticated)<br/>- Session state management"]
+        
+        subgraph "Pages (frontend/utils/)"
+            DASH["dashboard_page.py<br/>- 4 metric cards<br/>- Recent apps list"]
+            APPS["applications_page.py<br/>- Status filter dropdown<br/>- Paginated table<br/>- Detail + Process buttons"]
+            PROC["process_page.py<br/>- App selector dropdown<br/>- Start Workflow button<br/>- Live status polling"]
+            DETAIL["detail_page.py<br/>- Applicant info header<br/>- Assessment section<br/>- Documents table<br/>- Inconsistencies + flags<br/>- Recommendations<br/>- Signoff buttons"]
+            ADMIN["admin_page.py<br/>- Flag Queue tab<br/>- Awaiting Review tab<br/>- Accept/Reject/Resume"]
+        end
+
+        API["api_client.py<br/>httpx wrapper<br/>- JWT injection<br/>- Typed responses<br/>- Error handling"]
+    end
+
+    subgraph "FastAPI Backend (http://app:8000)"
+        direction TB
+        AUTH["auth.py<br/>POST /login<br/>GET /me"]
+        APP_API["applications.py<br/>GET list/detail<br/>POST process<br/>GET status"]
+        DEC["decisions.py<br/>GET flags<br/>POST resolve-flag<br/>POST signoff<br/>POST resume"]
+        PG[("PostgreSQL<br/>applications<br/>assessments<br/>users<br/>inconsistencies")]
+    end
+
+    subgraph "Session State (st.session_state)"
+        SS1["authenticated: bool"]
+        SS2["token: str (JWT)"]
+        SS3["user: dict (id, role)"]
+        SS4["page: str"]
+        SS5["selected_app_id: str"]
+        SS6["process_app_id: str"]
+    end
+
+    MAIN --> SS1
+    MAIN --> SS2
+    MAIN --> SS3
+    MAIN --> SS4
+    MAIN --> SS5
+    MAIN --> SS6
+
+    MAIN -.-> DASH
+    MAIN -.-> APPS
+    MAIN -.-> PROC
+    MAIN -.-> DETAIL
+    MAIN -.-> ADMIN
+
+    DASH --> API
+    APPS --> API
+    PROC --> API
+    DETAIL --> API
+    ADMIN --> API
+
+    API --> AUTH
+    API --> APP_API
+    API --> DEC
+
+    AUTH --> PG
+    APP_API --> PG
+    DEC --> PG
+
+    subgraph "Data Flow: Process App"
+        PROC -->|"1. POST /process"| APP_API
+        APP_API -->|"2. 202 Accepted"| PROC
+        PROC -->|"3. Poll GET /status (every 2s)"| APP_API
+        APP_API -->|"4. Status update"| PROC
+    end
+
+    subgraph "Data Flow: Signoff"
+        DETAIL -->|"1. POST /signoff"| DEC
+        DEC -->|"2. Update DB"| PG
+        DETAIL -->|"3. Poll GET flags"| DEC
+        DEC -->|"4. Resolved flags"| DETAIL
+    end
