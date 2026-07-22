@@ -37,7 +37,7 @@ def show():
                         if status:
                             s = status["status"]
                             placeholder.info(f"Status: **{s}**")
-                            if s in ("approved", "declined", "completed", "failed"):
+                            if s in ("approved", "declined", "awaiting_review", "completed", "failed"):
                                 if status.get("decision"):
                                     st.success(f"Decision: **{status['decision']}** | ML Score: {status.get('ml_score', 'N/A')}")
                                 break

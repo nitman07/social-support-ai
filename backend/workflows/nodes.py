@@ -280,10 +280,17 @@ async def recommendation_node(state: ApplicationState) -> dict:
         ),
     ]
 
+    decision = state.get("decision")
+    confidence = state.get("decision_confidence", 0.0)
+    requires_signoff = decision in ("declined", "pending") or confidence < 0.5
+
     async with async_session_factory() as session:
         app = await session.get(ApplicationModel, state["application_id"])
         if app:
-            app.status = state.get("decision", "pending") if state.get("decision") != "referred" else "pending"
+            if requires_signoff:
+                app.status = "awaiting_review"
+            else:
+                app.status = decision if decision != "referred" else "pending"
             session.add(app)
 
             assessment_result = await session.execute(
@@ -295,8 +302,9 @@ async def recommendation_node(state: ApplicationState) -> dict:
             if assessment:
                 assessment.ml_score = state.get("ml_score", assessment.ml_score)
                 assessment.ml_confidence = state.get("ml_confidence", assessment.ml_confidence)
-                assessment.decision = state.get("decision", assessment.decision)
                 assessment.llm_rationale = state.get("decision_rationale", assessment.llm_rationale)
+                if not requires_signoff:
+                    assessment.decision = decision
                 session.add(assessment)
 
         await session.commit()

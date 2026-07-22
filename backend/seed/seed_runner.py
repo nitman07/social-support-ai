@@ -206,6 +206,30 @@ async def seed_postgres() -> None:
 
         await session.commit()
 
+    async with async_session_factory() as session:
+        result = await session.execute(
+            select(ApplicationModel.id)
+            .where(ApplicationModel.status == "draft")
+            .order_by(ApplicationModel.created_at)
+            .limit(10)
+        )
+        poor_ids = [row[0] for row in result.fetchall()]
+        for aid in poor_ids:
+            await session.execute(
+                text("UPDATE extracted_income SET amount = 500.0 WHERE application_id = :aid"),
+                {"aid": aid},
+            )
+            await session.execute(
+                text("UPDATE extracted_liabilities SET amount = 80000.0, monthly_payment = 3000.0 WHERE application_id = :aid"),
+                {"aid": aid},
+            )
+            await session.execute(
+                text("UPDATE extracted_assets SET value = 200.0 WHERE application_id = :aid"),
+                {"aid": aid},
+            )
+        await session.commit()
+        logger.info(f"Set {len(poor_ids)} applicants to low-income profile for decline testing")
+
     logger.info(f"Seeded {NUM_APPLICANTS} applicants into PostgreSQL")
 
 

@@ -91,12 +91,12 @@ def show(app_id: str):
             if rec.get("relevance_score"):
                 st.metric("Relevance", f"{rec['relevance_score']:.2%}")
 
-    if app["status"] in ("approved", "declined", "completed"):
+    if app["status"] in ("approved", "declined", "awaiting_review", "completed"):
         st.divider()
         st.subheader("Human-in-the-Loop Signoff")
         if app["status"] in ("approved", "declined"):
             st.info(f"Final decision: **{app['status']}**")
-        else:
+        elif app["status"] in ("awaiting_review", "completed"):
             col_s1, col_s2 = st.columns(2)
             with col_s1:
                 if st.button("Approve", type="primary", use_container_width=True):
