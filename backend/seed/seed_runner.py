@@ -29,9 +29,11 @@ from backend.database.postgres import (
     ExtractedLiabilityModel,
     InconsistencyModel,
     RecommendationModel,
+    UserModel,
     async_session_factory,
     engine,
 )
+from backend.services.auth_service import hash_password
 from backend.database.postgres.database import Base
 from backend.database.mongodb.document_store import mongo_document_store
 from backend.database.neo4j.graph_store import neo4j_graph_store
@@ -55,6 +57,26 @@ async def seed_postgres() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
     async with async_session_factory() as session:
+        session.add_all([
+            UserModel(
+                id=uuid4(),
+                username="admin",
+                hashed_password=hash_password("admin123"),
+                role="admin",
+                full_name="System Administrator",
+                active=True,
+            ),
+            UserModel(
+                id=uuid4(),
+                username="reviewer",
+                hashed_password=hash_password("reviewer123"),
+                role="reviewer",
+                full_name="Senior Reviewer",
+                active=True,
+            ),
+        ])
+        await session.flush()
+
         for i in range(NUM_APPLICANTS):
             applicant = generator.generate_applicant()
             include_inconsistencies = i % 3 == 0

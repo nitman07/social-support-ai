@@ -9,7 +9,7 @@ git clone https://github.com/nitman07/social-support-ai.git
 cd social-support-ai
 cp .env.example .env
 make dev          # start all 8 Docker services
-make seed         # populate 4 databases with 100 synthetic applicants
+make seed         # populate DBs + create admin/reviewer users
 make train        # train the Random Forest eligibility model
 ```
 
