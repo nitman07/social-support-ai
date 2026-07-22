@@ -75,8 +75,18 @@ with st.sidebar:
     if role in ("admin", "reviewer"):
         nav_items["Admin"] = "admin"
 
-    selected = st.radio("Navigation", list(nav_items.keys()), index=0)
-    st.session_state.page = nav_items[selected]
+    label_to_page = nav_items
+    page_to_label = {v: k for k, v in nav_items.items()}
+    current_page = st.session_state.get("page", "dashboard")
+    current_label = page_to_label.get(current_page, page_to_label.get("applications", list(nav_items.keys())[0]))
+    current_index = list(nav_items.keys()).index(current_label)
+    selected = st.radio("Navigation", list(nav_items.keys()), index=current_index, key="nav_radio")
+    selected_page = nav_items[selected]
+    if "nav_last_page" not in st.session_state:
+        st.session_state.nav_last_page = selected_page
+    if selected_page != st.session_state.nav_last_page:
+        st.session_state.nav_last_page = selected_page
+        st.session_state.page = selected_page
 
     st.divider()
     if st.button("Logout", use_container_width=True):

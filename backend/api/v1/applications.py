@@ -16,7 +16,10 @@ from backend.api.v1.schemas import (
     RecommendationResponse,
     WorkflowStatusResponse,
 )
+from fastapi.responses import Response
+
 from backend.core.logging import get_logger
+from backend.database.mongodb.document_store import mongo_document_store
 from backend.database.postgres import (
     ApplicantModel,
     ApplicationModel,
@@ -26,6 +29,7 @@ from backend.database.postgres import (
     RecommendationModel,
     async_session_factory,
 )
+from backend.domain.entities.document import Document, DocumentType, OCRStatus
 from backend.ml.model import ml_service
 from backend.services.audit_service import log_audit
 from backend.workflows.graph import application_graph
@@ -148,6 +152,37 @@ async def get_application(application_id: uuid.UUID, user: dict = Depends(get_cu
         submitted_at=app.submitted_at,
         created_at=app.created_at,
     )
+
+
+@router.get("/{application_id}/documents/{document_id}")
+async def download_document(
+    application_id: uuid.UUID,
+    document_id: uuid.UUID,
+    user: dict = Depends(get_current_user),
+):
+    async with async_session_factory() as session:
+        doc_model = await session.get(DocumentModel, document_id)
+        if not doc_model or doc_model.application_id != application_id:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+    if mongo_document_store.bucket is None:
+        await mongo_document_store.connect()
+
+    doc_entity = Document(
+        application_id=application_id,
+        document_type=DocumentType(doc_model.document_type),
+        file_name=doc_model.file_name,
+        mime_type=doc_model.mime_type,
+        file_size=doc_model.file_size,
+        storage_path=doc_model.storage_path,
+        id=doc_model.id,
+        ocr_status=OCRStatus(doc_model.ocr_status),
+        ocr_confidence=doc_model.ocr_confidence,
+    )
+    content = await mongo_document_store.download(doc_entity)
+    return Response(content=content, media_type=doc_model.mime_type, headers={
+        "Content-Disposition": f'attachment; filename="{doc_model.file_name}"',
+    })
 
 
 @router.post("/{application_id}/process", response_model=ProcessResponse, status_code=202)

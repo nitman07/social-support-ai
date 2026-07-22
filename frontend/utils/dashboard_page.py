@@ -43,6 +43,7 @@ def show():
                 col_b.write(ca)
                 if col_c.button("View", key=f"view_{app['id']}"):
                     st.session_state["selected_app_id"] = app["id"]
+                    st.session_state["detail_prev_page"] = "dashboard"
                     st.session_state["page"] = "detail"
                     st.rerun()
     else:

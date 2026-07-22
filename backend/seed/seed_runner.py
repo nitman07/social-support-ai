@@ -5,12 +5,14 @@ Usage:
 """
 
 import asyncio
+import io
 import random
 from datetime import date, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from faker import Faker
-from sqlalchemy import text
+from fpdf import FPDF
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.config import settings
@@ -34,7 +36,7 @@ from backend.database.postgres.database import Base
 from backend.database.mongodb.document_store import mongo_document_store
 from backend.database.neo4j.graph_store import neo4j_graph_store
 from backend.database.qdrant.vector_store import qdrant_vector_store
-from backend.domain.entities.document import OCRStatus
+from backend.domain.entities.document import Document, DocumentType, OCRStatus
 from backend.domain.ports import VectorRecord
 from backend.seed.synthetic_data import generator
 
@@ -186,20 +188,66 @@ async def seed_postgres() -> None:
 
 
 async def seed_mongodb() -> None:
-    logger.info("Seeding MongoDB...")
+    logger.info("Seeding MongoDB with documents and OCR results...")
     await mongo_document_store.connect()
-    for i in range(10):
+
+    async with async_session_factory() as session:
+        result = await session.execute(select(DocumentModel))
+        all_docs = result.scalars().all()
+
+    for doc_model in all_docs:
+        pdf_bytes = _generate_dummy_pdf(doc_model.document_type, doc_model.file_name)
+        doc_entity = Document(
+            application_id=doc_model.application_id,
+            document_type=DocumentType(doc_model.document_type),
+            file_name=doc_model.file_name,
+            mime_type=doc_model.mime_type,
+            file_size=len(pdf_bytes),
+            storage_path=doc_model.storage_path,
+            id=doc_model.id,
+            ocr_status=OCRStatus(doc_model.ocr_status),
+            ocr_confidence=doc_model.ocr_confidence,
+        )
+        await mongo_document_store.upload(doc_entity, pdf_bytes)
+
         await mongo_document_store.save_ocr_result(
-            application_id=uuid4(),
-            document_id=uuid4(),
-            text=f"Sample OCR text for document {i}: extracted bank statement showing salary credits of AED 4,200 monthly.",
-            tables=[{"header": ["Date", "Description", "Amount"], "rows": [
-                ["2024-01-01", "Salary Credit", "4200"],
-                ["2024-01-05", "Rent Payment", "-2000"],
+            application_id=doc_model.application_id,
+            document_id=doc_model.id,
+            text=f"Extracted text from {doc_model.document_type}: sample data for verification purposes.",
+            tables=[{"header": ["Field", "Value"], "rows": [
+                ["document_type", doc_model.document_type],
+                ["ocr_confidence", str(doc_model.ocr_confidence)],
             ]}],
         )
+
     await mongo_document_store.close()
-    logger.info("Seeded MongoDB with sample OCR results")
+    logger.info(f"Seeded {len(all_docs)} documents into MongoDB GridFS")
+
+
+def _generate_dummy_pdf(doc_type: str, file_name: str) -> bytes:
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=12)
+    pdf.cell(0, 10, text=f"Document: {doc_type}", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(10)
+    pdf.set_font("Helvetica", size=10)
+    pdf.cell(0, 8, text=f"File: {file_name}", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
+    pdf.multi_cell(0, 8, text=f"This is a sample {doc_type.replace('_', ' ').title()} document generated for testing purposes. It contains dummy data for the Social Support AI workflow automation system.")
+    pdf.ln(10)
+    pdf.set_font("Helvetica", style="B", size=10)
+    pdf.cell(0, 8, text="Extracted Data:", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", size=10)
+    sample_data = {
+        "emirates_id": "784-1992-1234567-1\nName: John Doe\nNationality: UAE\nDate of Birth: 15/03/1992",
+        "passport": "Passport No: P12345678\nFull Name: John Doe\nNationality: UAE\nIssue Date: 01/01/2020\nExpiry: 31/12/2030",
+        "bank_statement": "Bank: UAE National Bank\nAccount: AE123456789012345678901\nPeriod: Jan-Dec 2024\nTotal Credits: AED 48,000\nTotal Debits: AED 36,000",
+        "salary_certificate": "Employer: ABC Company LLC\nEmployee: John Doe\nMonthly Salary: AED 4,200\nPosition: Administrative Assistant\nDate: 01/01/2024",
+        "resume": "Name: John Doe\nExperience: 5 years\nSkills: Microsoft Office, Data Entry\nEducation: Bachelor's Degree",
+        "assets_liabilities": "Assets:\n- Vehicle: AED 45,000\n- Bank Account: AED 12,500\nLiabilities:\n- Personal Loan: AED 15,000\nMonthly Payment: AED 500",
+    }
+    pdf.multi_cell(0, 8, text=sample_data.get(doc_type, f"Sample data for {doc_type}"))
+    return pdf.output()
 
 
 async def seed_qdrant() -> None:

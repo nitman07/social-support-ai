@@ -108,6 +108,15 @@ def signoff(app_id: str, decision: str, rationale: str | None = None) -> bool:
     return resp.status_code == 200
 
 
+def download_document(app_id: str, doc_id: str) -> bytes | None:
+    resp = httpx.get(
+        f"{API_BASE_URL}/api/v1/applications/{app_id}/documents/{doc_id}",
+        headers=_headers(),
+        timeout=30,
+    )
+    return resp.content if resp.status_code == 200 else None
+
+
 def resume_workflow(app_id: str) -> dict | None:
     resp = httpx.post(
         f"{API_BASE_URL}/api/v1/applications/{app_id}/resume",

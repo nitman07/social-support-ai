@@ -1,3 +1,4 @@
+import io
 from uuid import UUID
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase, AsyncIOMotorGridFSBucket
@@ -27,9 +28,13 @@ class MongoDocumentStore(IDocumentStore):
     async def upload(self, document: Document, content: bytes) -> str:
         if self.bucket is None:
             raise RuntimeError("MongoDB not connected")
+        if isinstance(content, (bytes, bytearray)):
+            source = io.BytesIO(bytes(content))
+        else:
+            source = content
         grid_id = await self.bucket.upload_from_stream(
             filename=document.file_name,
-            source=content,
+            source=source,
             metadata={
                 "document_id": str(document.id),
                 "application_id": str(document.application_id),
@@ -42,8 +47,12 @@ class MongoDocumentStore(IDocumentStore):
     async def download(self, document: Document) -> bytes:
         if self.bucket is None:
             raise RuntimeError("MongoDB not connected")
+        stream = await self.bucket.open_download_stream_by_name(document.file_name)
         chunks = []
-        async for chunk in self.bucket.open_download_stream_by_name(document.file_name):
+        while True:
+            chunk = await stream.read()
+            if not chunk:
+                break
             chunks.append(chunk)
         return b"".join(chunks)
 

@@ -1,6 +1,6 @@
 import streamlit as st
 
-from frontend.api_client import get_application, get_flags, resolve_flag, signoff
+from frontend.api_client import download_document, get_application, get_flags, resolve_flag, signoff
 
 
 def show(app_id: str):
@@ -9,7 +9,15 @@ def show(app_id: str):
         st.error("Application not found")
         return
 
-    st.title(f"Application: {app['applicant']['full_name']}")
+    col_back, col_title = st.columns([1, 10])
+    with col_back:
+        prev = st.session_state.get("detail_prev_page", "applications")
+        if st.button("← Back", use_container_width=True):
+            st.session_state.pop("detail_prev_page", None)
+            st.session_state.page = prev
+            st.rerun()
+    with col_title:
+        st.title(f"Application: {app['applicant']['full_name']}")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -35,10 +43,22 @@ def show(app_id: str):
     st.divider()
     st.subheader("Documents")
     for doc in app.get("documents", []):
-        col_d1, col_d2, col_d3 = st.columns([3, 1, 1])
+        col_d1, col_d2, col_d3, col_d4 = st.columns([3, 1, 1, 1])
         col_d1.write(f"**{doc['document_type']}** — {doc['file_name']}")
         col_d2.write(f"OCR: {doc['ocr_status']}")
         col_d3.write(f"Conf: {doc.get('ocr_confidence', 'N/A')}")
+        if col_d4.button("Download", key=f"dl_{doc['id']}"):
+            content = download_document(app_id, doc["id"])
+            if content:
+                st.download_button(
+                    label="Click to Save",
+                    data=content,
+                    file_name=doc["file_name"],
+                    mime="application/pdf",
+                    key=f"save_{doc['id']}",
+                )
+            else:
+                st.warning("Document not available")
 
     st.divider()
     st.subheader("Inconsistencies")

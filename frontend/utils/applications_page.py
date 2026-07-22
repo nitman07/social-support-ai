@@ -38,9 +38,11 @@ def show():
             col3.write(ca)
             if col4.button("Detail", key=f"detail_{app['id']}"):
                 st.session_state["selected_app_id"] = app["id"]
+                st.session_state["detail_prev_page"] = "applications"
                 st.session_state["page"] = "detail"
                 st.rerun()
-            if col5.button("Process", key=f"process_{app['id']}"):
-                st.session_state["process_app_id"] = app["id"]
-                st.session_state["page"] = "process"
-                st.rerun()
+            if app["status"] in ("draft", "failed"):
+                if col5.button("Process", key=f"process_{app['id']}"):
+                    st.session_state["process_app_id"] = app["id"]
+                    st.session_state["page"] = "process"
+                    st.rerun()
