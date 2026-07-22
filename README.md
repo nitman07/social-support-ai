@@ -94,7 +94,7 @@ social-support-ai/
 │   ├── architecture-m*.mmd  # Mermaid flow diagrams (M2–M6)
 │   └── solution-summary.md  # Comprehensive solution overview
 └── tests/                    # Unit + integration tests
-    ├── unit/                 # 20 tests (domain, ML, auth)
+    ├── unit/                 # 21 tests (domain, ML, auth)
     └── integration/          # API + audit + metrics tests
 ```
 

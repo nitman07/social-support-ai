@@ -132,7 +132,7 @@ make train              # train ML model
 # Login:                 admin / admin123
 
 # Run tests:
-make test               # 20 unit tests + integration tests
+make test               # 21 unit + 16 integration = 36 tests
 
 # Stop:
 make down
