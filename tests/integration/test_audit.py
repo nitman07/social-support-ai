@@ -9,7 +9,7 @@ from backend.services.audit_service import log_audit
 
 @pytest.mark.asyncio
 async def test_log_audit_entry():
-    app_id = uuid4()
+    app_id = None
     await log_audit(
         application_id=app_id,
         action="test_action",

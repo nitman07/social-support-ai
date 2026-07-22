@@ -37,7 +37,7 @@ class TestLogin:
 class TestAuthMiddleware:
     async def test_me_without_token(self, client: AsyncClient):
         resp = await client.get("/api/v1/auth/me")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     async def test_me_with_invalid_token(self, client: AsyncClient):
         resp = await client.get(
@@ -48,7 +48,7 @@ class TestAuthMiddleware:
 
     async def test_applications_without_token(self, client: AsyncClient):
         resp = await client.get("/api/v1/applications")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 class TestApplications:

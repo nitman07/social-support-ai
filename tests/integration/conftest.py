@@ -4,19 +4,26 @@ from uuid import uuid4
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
+from sqlalchemy import text
+
 from backend.database.postgres import (
     UserModel,
     async_session_factory,
+    close_db,
     init_db,
 )
+from backend.database.postgres.database import Base, engine
 from backend.main import app
 from backend.services.auth_service import hash_password
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def setup_db():
-    await init_db()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
     yield
+    await close_db()
 
 
 @pytest_asyncio.fixture

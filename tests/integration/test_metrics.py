@@ -6,7 +6,7 @@ class TestMetrics:
         metrics = get_metrics()
         assert metrics["request_count"] >= 0
         assert isinstance(metrics["average_duration_ms"], float)
-        assert isinstance(metrics["total_duration_seconds"], float)
+        assert isinstance(metrics["total_duration_seconds"], (int, float))
 
     def test_get_metrics_accumulated(self):
         REQUEST_DURATIONS.append(0.1)

@@ -4,6 +4,7 @@ from sqlalchemy import select
 
 from backend.api.v1.schemas import LoginRequest, TokenResponse, UserResponse
 from backend.core.config import settings
+from backend.core.exceptions import AuthenticationError
 from backend.core.logging import get_logger
 from backend.database.postgres import UserModel, async_session_factory
 from backend.services.auth_service import (
@@ -18,7 +19,10 @@ security = HTTPBearer()
 
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
-    payload = decode_access_token(credentials.credentials)
+    try:
+        payload = decode_access_token(credentials.credentials)
+    except AuthenticationError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
     return {"user_id": payload["sub"], "role": payload["role"]}
 
 
