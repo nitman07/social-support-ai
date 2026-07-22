@@ -21,44 +21,36 @@ make train        # train the Random Forest eligibility model
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    OUTPUTS                                   │
-│  ┌──────────┐  ┌──────────────┐  ┌──────────┐  ┌─────────┐ │
-│  │Eligibility│  │  LLM Rationale│  │ PDF Docs │  │Audit Log│ │
-│  │ Score (ML)│  │ (why approved)│  │(download)│  │ (trail) │ │
-│  └─────┬────┘  └──────┬───────┘  └────┬─────┘  └────┬────┘ │
-└────────┼──────────────┼───────────────┼──────────────┼──────┘
-         │              │               │              │
-         └──────────────┼───────────────┼──────────────┘
-                        │               │
-              ┌─────────▼───────────────▼──────────┐
-              │         Streamlit Dashboard        │
-              │      (localhost:8501)               │
-              │  login · dashboard · applications  │
-              │  detail · process · admin           │
-              └─────────────────┬──────────────────┘
-                                │ HTTP (JWT)
-              ┌─────────────────▼──────────────────┐
-              │        FastAPI REST API             │
-              │      (localhost:8001)               │
-              │  Auth · CRUD · Process · Signoff    │
-              └─────────────────┬──────────────────┘
-                                │
-              ┌─────────────────▼──────────────────┐
-              │    LangGraph 8-Node ReAct Workflow  │
-              │      (asyncio background task)      │
-              │                                     │
-              │  intake → ocr → validation → flags  │◄── HITL #1
-              │     → knowledge → eligibility       │
-              │     → decision → recommendation     │◄── HITL #2
-              └──────┬──────┬──────┬──────┬───────┘
-                     │      │      │      │
-         ┌───────────┘      │      │      └───────────┐
-         ▼                  ▼      ▼                  ▼
-   PostgreSQL           MongoDB  Qdrant             Neo4j
-(applications,        (OCR text, (policy           (entity
- assessments,          document  embeddings)        graph)
- users, audit)         images)
+                      ┌─────────────────────────────┐
+                      │    Streamlit Dashboard      │
+                      │   (localhost:8501)           │
+                      └──────────────┬──────────────┘
+                                     │ HTTP (JWT)
+                      ┌──────────────▼──────────────┐
+                      │     FastAPI REST API        │
+                      │   (localhost:8001)           │
+                      │   - Auth (JWT)              │
+                      │   - Applications CRUD       │
+                      │   - Workflow Trigger        │
+                      │   - HITL Signoff            │
+                      └──────────────┬──────────────┘
+                                     │
+                      ┌──────────────▼──────────────┐
+                      │  LangGraph 8-Node ReAct     │
+                      │     Workflow                │
+                      │   (asyncio background task) │
+                      │                             │
+                      │ intake → ocr → validation   │
+                      │  → knowledge → eligibility   │
+                      │  → decision → recomm.       │
+                      └──────┬──────┬──────┬──────┬─┘
+                             │      │      │      │
+                 ┌───────────┘      │      │      └───────────┐
+                 ▼                  ▼      ▼                  ▼
+           PostgreSQL           MongoDB  Qdrant             Neo4j
+        (applications,        (OCR text, (policy           (entity
+         assessments,          document  embeddings)        graph)
+         users, audit)         images)
 ```
 
 ## Tech Stack
