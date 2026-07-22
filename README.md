@@ -21,35 +21,44 @@ make train        # train the Random Forest eligibility model
 ## Architecture
 
 ```
-                      ┌─────────────────────────────┐
-                      │    Streamlit Dashboard      │
-                      │   (localhost:8501)           │
-                      └──────────────┬──────────────┘
-                                     │ HTTP (JWT)
-                      ┌──────────────▼──────────────┐
-                      │     FastAPI REST API        │
-                      │   (localhost:8001)           │
-                      │   - Auth (JWT)              │
-                      │   - Applications CRUD       │
-                      │   - Workflow Trigger        │
-                      │   - HITL Signoff            │
-                      └──────────────┬──────────────┘
-                                     │
-                      ┌──────────────▼──────────────┐
-                      │   LangGraph 7-Node Workflow │
-                      │   (asyncio background task) │
-                      │                             │
-                      │  intake → ocr → validation │
-                      │     → knowledge → eligib.  │
-                      │     → decision → recomm.   │
-                      └──────┬─────┬────┬─────┬────┘
-                             │     │    │     │
-                 ┌───────────┘     │    │     └───────────┐
-                 ▼                 ▼    ▼                 ▼
-           PostgreSQL          MongoDB Qdrant          Neo4j
-        (applications,       (OCR text,  (policy      (entity
-         assessments,         document   embeddings)   graph)
-         users, audit)        images)
+┌─────────────────────────────────────────────────────────────┐
+│                    OUTPUTS                                   │
+│  ┌──────────┐  ┌──────────────┐  ┌──────────┐  ┌─────────┐ │
+│  │Eligibility│  │  LLM Rationale│  │ PDF Docs │  │Audit Log│ │
+│  │ Score (ML)│  │ (why approved)│  │(download)│  │ (trail) │ │
+│  └─────┬────┘  └──────┬───────┘  └────┬─────┘  └────┬────┘ │
+└────────┼──────────────┼───────────────┼──────────────┼──────┘
+         │              │               │              │
+         └──────────────┼───────────────┼──────────────┘
+                        │               │
+              ┌─────────▼───────────────▼──────────┐
+              │         Streamlit Dashboard        │
+              │      (localhost:8501)               │
+              │  login · dashboard · applications  │
+              │  detail · process · admin           │
+              └─────────────────┬──────────────────┘
+                                │ HTTP (JWT)
+              ┌─────────────────▼──────────────────┐
+              │        FastAPI REST API             │
+              │      (localhost:8001)               │
+              │  Auth · CRUD · Process · Signoff    │
+              └─────────────────┬──────────────────┘
+                                │
+              ┌─────────────────▼──────────────────┐
+              │    LangGraph 8-Node ReAct Workflow  │
+              │      (asyncio background task)      │
+              │                                     │
+              │  intake → ocr → validation → flags  │◄── HITL #1
+              │     → knowledge → eligibility       │
+              │     → decision → recommendation     │◄── HITL #2
+              └──────┬──────┬──────┬──────┬───────┘
+                     │      │      │      │
+         ┌───────────┘      │      │      └───────────┐
+         ▼                  ▼      ▼                  ▼
+   PostgreSQL           MongoDB  Qdrant             Neo4j
+(applications,        (OCR text, (policy           (entity
+ assessments,          document  embeddings)        graph)
+ users, audit)         images)
 ```
 
 ## Tech Stack
@@ -58,7 +67,7 @@ make train        # train the Random Forest eligibility model
 |-------|-----------|---------|
 | Language | Python 3.11+ | Async-native, AI/ML ecosystem |
 | API | FastAPI | Async endpoints, Pydantic validation, auto-docs |
-| Workflow | LangGraph | Stateful 7-node agent graph with checkpointing |
+| Workflow | LangGraph | Stateful 8-node ReAct graph with 2 HITL checkpoints |
 | ML | scikit-learn (Random Forest) | Eligibility scoring + SHAP explainability |
 | LLM | Ollama (Qwen2.5:0.5b) | Local decision rationale generation |
 | Frontend | Streamlit | Admin dashboard + process UI |
