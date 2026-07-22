@@ -10,23 +10,30 @@ def show():
     if user:
         st.markdown(f"Welcome, **{user.get('full_name', user['username'])}** ({user['role']})")
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
 
     with col1:
         result = list_applications(page_size=1)
         total = result.get("total", 0)
-        st.metric("Total Applications", total)
+        st.metric("Total", total)
 
     with col2:
         pending = list_applications(status="draft", page_size=1)
-        pending_total = pending.get("total", 0)
-        st.metric("Draft", pending_total)
+        st.metric("Draft", pending.get("total", 0))
 
     with col3:
+        processing = list_applications(status="processing", page_size=1)
+        st.metric("Processing", processing.get("total", 0))
+
+    with col4:
+        awaiting = list_applications(status="awaiting_review", page_size=1)
+        st.metric("Awaiting", awaiting.get("total", 0))
+
+    with col5:
         approved = list_applications(status="approved", page_size=1)
         st.metric("Approved", approved.get("total", 0))
 
-    with col4:
+    with col6:
         declined = list_applications(status="declined", page_size=1)
         st.metric("Declined", declined.get("total", 0))
 
