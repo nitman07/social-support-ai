@@ -148,6 +148,24 @@ Six ADRs document key design choices:
 - **202 + async pattern** — Workflow runs as background task; client polls status. API stays responsive.
 - **No cloud dependencies** — All models run locally via Ollama. No citizen data leaves the premises.
 
+## End-to-End Example
+
+Applicant *Samantha Duncan* processed through the full workflow:
+
+```
+           Input                              ↓                          Output
+┌─────────────────────────┐          ┌──────────────────┐      ┌──────────────────────────┐
+│ Monthly Income: AED 13,923│   →     │ ML Score: 0.986  │  →   │ Decision: ✅ Approved     │
+│ Family Size: 3           │         │ Confidence: 0.986 │      │ LLM Rationale: Generated  │
+│ Employed: 19 yrs         │         │ SHAP Top-3:       │      │ Recommendation:           │
+│ Total Assets: AED 60K    │         │  income, liab.,   │      │  UAE Digital Skills Prog. │
+│ Total Liab.: AED 43K     │         │  assets           │      │                          │
+│ No inconsistencies       │         │                   │      │                          │
+└─────────────────────────┘          └──────────────────┘      └──────────────────────────┘
+```
+
+The workflow completed in ~98 seconds across all 7 LangGraph nodes with Ollama generating the decision rationale locally.
+
 ## License
 
 MIT

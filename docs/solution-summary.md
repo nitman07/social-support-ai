@@ -30,9 +30,9 @@ Applicant → [Streamlit UI] → [FastAPI REST API] → [LangGraph 7-Node Workfl
 | Qdrant | Policy embeddings (768-dim) | Vector similarity search |
 | Neo4j | Entity relationship graph | Cypher graph traversal |
 
-## 4. Multi-Agent Workflow (LangGraph)
+## 4. Multi-Agent Workflow (LangGraph + ReAct)
 
-7 nodes in sequence, with 2 HITL checkpoints:
+The workflow follows a **ReAct** (Reasoning + Acting) pattern — each agent node observes state, reasons about it, and acts by producing new state. 7 nodes in sequence, with 2 HITL checkpoints:
 
 ```
 START → intake → ocr → validation → knowledge → eligibility → decision → recommendation → END
@@ -49,6 +49,21 @@ START → intake → ocr → validation → knowledge → eligibility → decisi
 - **recommendation_node**: Generate personalized program recommendations
 
 ## 5. ML Pipeline
+
+### Why Random Forest?
+
+Random Forest was chosen over deep learning or gradient-boosted trees for this government use case:
+
+| Requirement | How RF meets it |
+|-------------|----------------|
+| **Interpretability** | SHAP TreeExplainer provides per-feature contribution per prediction. Auditors can understand why any decision was made. |
+| **Tabular data** | 8 structured features (income, family size, assets, etc.) — RF handles mixed scales without normalization. |
+| **Missing values** | RF can work with incomplete data; split thresholds naturally handle nulls during inference. |
+| **Class imbalance** | `class_weight='balanced'` adjusts for ~15% ineligible applicants without manual resampling. |
+| **Low data regime** | 100–1000 records is enough for RF to converge; deep learning would require 10× more. |
+| **Non-linear interactions** | Captures interactions like `liability_to_income_ratio × family_size` without manual feature engineering. |
+
+### Pipeline Details
 
 - **8 features**: monthly_income, family_size, years_employed, total_assets, total_liabilities, liability_to_income_ratio, has_inconsistencies, num_documents
 - **5 business rules**: 4 hard blockers (income, assets, debt ratio, minimum income) + 1 soft flag
