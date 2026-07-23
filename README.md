@@ -2,6 +2,8 @@
 
 AI-powered workflow automation for government social security departments. Processes financial assistance applications in **minutes** instead of days using local LLMs, ML scoring, and multi-agent orchestration.
 
+[![Watch the Demo](https://img.youtube.com/vi/y7iy18P3WHk/maxresdefault.jpg)](https://youtu.be/y7iy18P3WHk) — see the full workflow from login to human-in-the-loop signoff.
+
 ## Quick Start
 
 ```bash
